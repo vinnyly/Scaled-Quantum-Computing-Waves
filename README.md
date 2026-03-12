@@ -42,26 +42,48 @@ Building a distributed cloud system often requires engineering around strict env
 
 ## How to Run
 
-1. **Build and Push the Container:**
+### Prerequisites
+
+Replace the following placeholders in the source files with your own values before building or running:
+
+| Placeholder | File(s) | Replace With |
+|---|---|---|
+| `<YOUR_AWS_ACCOUNT_ID>` | `job-deployment.yaml` | Your 12-digit AWS account ID |
+| `<YOUR_EC2_PUBLIC_IP>` | `parallel_worker.py`, `visualize.py` | The public IP of your EC2 Redis instance |
+
+### 0. Set Up the Redis Broker (EC2)
+
+Launch an EC2 instance and install Redis:
+```bash
+sudo apt-get update && sudo apt-get install -y redis-server
+```
+Edit `/etc/redis/redis.conf` to allow external connections:
+```
+bind 0.0.0.0
+protected-mode no
+```
+Then restart Redis:
+```bash
+sudo systemctl restart redis-server
+```
+Ensure the EC2 security group allows inbound traffic on **port 6379**.
+
+### 1. Build and Push the Container
 ```bash
 docker build -t wave-worker .
-docker tag wave-worker:latest <AWS_ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/wave-worker:latest
-docker push <AWS_ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/wave-worker:latest
-
+docker tag wave-worker:latest <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-west-2.amazonaws.com/wave-worker:latest
+docker push <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-west-2.amazonaws.com/wave-worker:latest
 ```
 
-
-2. **Start the Local Listener:**
-Ensure `redis`, `numpy`, and `matplotlib` are installed locally, then start the visualization subscriber:
+### 2. Install Local Dependencies and Start the Listener
 ```bash
+pip install redis numpy matplotlib
 python visualize.py
-
 ```
 
+### 3. Deploy the Kubernetes Job
 
-3. **Deploy the Kubernetes Job:**
 Apply the infrastructure configuration to your EKS cluster to begin parallel computation:
 ```bash
 kubectl apply -f job-deployment.yaml
-
 ```
